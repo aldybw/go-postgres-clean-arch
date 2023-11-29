@@ -1,0 +1,45 @@
+version: "3.7"
+services:
+  web:
+    image: go-postgres-clean-arch
+    container_name: article_management_api
+    ports:
+      - 9090:9090
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    volumes:
+      - ./config.json:/app/config.json
+
+  mysql:
+    image: mysql:5.7
+    container_name: go_clean_arch_mysql
+    command: mysqld --user=root
+    volumes:
+      - ./article.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 3307:3306
+    environment:
+      - MYSQL_DATABASE=article
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+      - MYSQL_ROOT_PASSWORD=root
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+
+  postgresql:
+    image: postgres:14-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - ~/apps/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=aldy
+      - POSTGRES_DB=clean_arch_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -U aldy -d clean_arch_test"]
+      timeout: 5s
+      retries: 10
