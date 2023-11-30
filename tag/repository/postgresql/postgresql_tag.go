@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"go-postgres-clean-arch/domain"
 	"go-postgres-clean-arch/tag/repository"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -65,6 +66,7 @@ func (p *postgresqlTagRepo) Fetch(ctx context.Context, cursor string, num int64)
 
 	decodedCursor, err := repository.DecodeCursor(cursor)
 	if err != nil {
+		fmt.Println(err)
 		return nil, "", domain.ErrBadParamInput
 	}
 
@@ -122,21 +124,25 @@ func (p *postgresqlTagRepo) FetchByName(ctx context.Context, name string) (res d
 
 // Store implements domain.TagRepository.
 func (p *postgresqlTagRepo) Store(ctx context.Context, t *domain.Tag) (err error) {
-	query := `INSERT  tags SET name=? , created_at=? , updated_at=?`
+	// query := `INSERT tags SET name=? , created_at=? , updated_at=?`
+	query := `INSERT INTO tag (name, created_at, updated_at) 
+				VALUES ($1, $2, $3)
+				RETURNING id`
 	stmt, err := p.Conn.PrepareContext(ctx, query)
 	if err != nil {
 		return
 	}
 
-	res, err := stmt.ExecContext(ctx, t.Name, t.CreatedAt, t.UpdatedAt)
+	// _, err = stmt.ExecContext(ctx, t.Name, time.Now().UTC(), time.Now().UTC())
+	err = stmt.QueryRowContext(ctx, t.Name, time.Now(), time.Now()).Err()
 	if err != nil {
 		return
 	}
-	lastID, err := res.LastInsertId()
+	// lastID, err := res.LastInsertId()
 	if err != nil {
 		return
 	}
-	t.ID = lastID
+	// t.ID = lastID
 	return
 }
 

@@ -1,9 +1,14 @@
 package http
 
 import (
+	"fmt"
 	"go-postgres-clean-arch/domain"
+	"net/http"
+	"strconv"
 
+	"github.com/go-playground/validator"
 	"github.com/labstack/echo"
+	"github.com/sirupsen/logrus"
 )
 
 type TagHandler struct {
@@ -11,17 +16,160 @@ type TagHandler struct {
 }
 
 // NewTagHandler will initialize the tags/ resources endpoint
-func NewTagHandler(e *echo.Echo, tu domain.TagUseCase) *TagHandler {
-	// return &TagHandler{TUsecase: tu}
+func NewTagHandler(e *echo.Echo, tu domain.TagUseCase) {
 	handler := &TagHandler{
 		TUsecase: tu,
 	}
 
-	// e.GET("/tags", handler.FindByAll)
-	// e.GET("/tags/:tagId", handler.FindById)
-	// e.POST("/tags", handler.Create)
-	// e.PATCH("/tags/:tagId", handler.Update)
-	// e.DELETE("/tags/:tagId", handler.Delete)
+	baseRouter := e.Group("/api")
+	tagsRouter := baseRouter.Group("/tags")
+	tagsRouter.GET("/welcome", func(ctx echo.Context) (err error) { return ctx.JSON(http.StatusOK, "welcome aldy") })
+	tagsRouter.GET("", handler.FetchTag)
+	tagsRouter.GET("/:tagId", handler.GetByID)
+	tagsRouter.POST("", handler.Store)
+	tagsRouter.PATCH("/:tagId", handler.Update)
+	tagsRouter.DELETE("/:tagId", handler.Delete)
+}
+
+// FetchTag will fetch the tag based on given params
+func (t *TagHandler) FetchTag(c echo.Context) error {
+	numS := c.QueryParam("num")
+	num, _ := strconv.Atoi(numS)
+	cursor := c.QueryParam("cursor")
+	fmt.Println(num)
+	fmt.Println(cursor)
+	ctx := c.Request().Context()
+
+	listTag, nextCursor, err := t.TUsecase.Fetch(ctx, cursor, int64(num))
+	// listTag, nextCursor, err := t.TUsecase.Fetch(ctx, cursor, int64(num))
+	if err != nil {
+		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+	}
+
+	c.Response().Header().Set(`X-Cursor`, nextCursor)
+	return c.JSON(http.StatusOK, listTag)
+}
+
+// GetByID will get tag by given id
+func (t *TagHandler) GetByID(c echo.Context) error {
+	idP, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusNotFound, domain.ErrNotFound.Error())
+	}
+
+	id := int64(idP)
+	ctx := c.Request().Context()
+
+	tag, err := t.TUsecase.FetchByID(ctx, id)
+	if err != nil {
+		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, tag)
+}
+
+// Store will store the tag by given request body
+func (t *TagHandler) Store(c echo.Context) (err error) {
+	var tag domain.Tag
+	err = c.Bind(&tag)
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, err.Error())
+	}
+
+	var ok bool
+	if ok, err = isRequestValid(&tag); !ok {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	ctx := c.Request().Context()
+	err = t.TUsecase.Store(ctx, &tag)
+	if err != nil {
+		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, tag.Name)
+}
+
+// Update will update the tag by request body based on param id
+func (t *TagHandler) Update(c echo.Context) (err error) {
+	idP, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusNotFound, domain.ErrNotFound.Error())
+	}
+
+	id := int64(idP)
+	ctx := c.Request().Context()
+	_, err = t.TUsecase.FetchByID(ctx, id)
+	if err != nil {
+		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+	}
+
+	var tag domain.Tag
+	err = c.Bind(&tag)
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, err.Error())
+	}
+
+	var ok bool
+	if ok, err = isRequestValid(&tag); !ok {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	err = t.TUsecase.Update(ctx, &tag)
+	if err != nil {
+		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, tag)
+}
+
+// Delete will delete tag by given param
+func (t *TagHandler) Delete(c echo.Context) error {
+	idP, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusNotFound, domain.ErrNotFound.Error())
+	}
+
+	id := int64(idP)
+	ctx := c.Request().Context()
+
+	err = t.TUsecase.Delete(ctx, id)
+	if err != nil {
+		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
+type ResponseError struct {
+	Message string `json:"message"`
+}
+
+func isRequestValid(m *domain.Tag) (bool, error) {
+	validate := validator.New()
+	err := validate.Struct(m)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func getStatusCode(err error) int {
+	if err == nil {
+		return http.StatusOK
+	}
+
+	logrus.Error(err)
+	switch err {
+	case domain.ErrInternalServerError:
+		return http.StatusInternalServerError
+	case domain.ErrNotFound:
+		return http.StatusNotFound
+	case domain.ErrConflict:
+		return http.StatusConflict
+	default:
+		return http.StatusInternalServerError
+	}
 }
 
 // // Create Tag Handler

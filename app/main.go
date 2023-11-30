@@ -2,13 +2,12 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
-	"net/url"
 	"time"
 
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo"
+	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
 
 	"go-postgres-clean-arch/config"
@@ -32,17 +31,20 @@ func init() {
 
 func main() {
 	// sql/database golang connection (for raw queries)
-	dbHost := viper.GetString(`database.host`)
-	dbPort := viper.GetString(`database.port`)
-	dbUser := viper.GetString(`database.user`)
-	dbPass := viper.GetString(`database.pass`)
-	dbName := viper.GetString(`database.name`)
-	connection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbHost, dbPort, dbName)
-	val := url.Values{}
-	val.Add("parseTime", "1")
-	val.Add("loc", "Asia/Jakarta")
-	dsn := fmt.Sprintf("%s?%s", connection, val.Encode())
-	dbConn, err := sql.Open(`postgresql`, dsn)
+	// dbHost := viper.GetString(`database.host`)
+	// dbPort := viper.GetString(`database.port`)
+	// dbUser := viper.GetString(`database.user`)
+	// dbPass := viper.GetString(`database.pass`)
+	// dbName := viper.GetString(`database.name`)
+	// connection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbHost, dbPort, dbName)
+	// connection := fmt.Sprintf("postgres://%s:%s@%s/%s:%s?sslmode=verify-full", dbUser, dbPass, dbHost, dbPort, dbName)
+	// connection := "postgres://postgres@localhost/clean_arch_test?sslmode=verify-full"
+	dsn := "host=localhost port=5432 user=postgres dbname=clean_arch_test sslmode=disable"
+	// val := url.Values{}
+	// val.Add("parseTime", "1")
+	// val.Add("loc", "Asia/Jakarta")
+	// dsn := fmt.Sprintf("%s?%s", connection, val.Encode())
+	dbConn, err := sql.Open(`postgres`, dsn)
 
 	// gorm connection (for ORM)
 	db := config.DatabaseConnection()

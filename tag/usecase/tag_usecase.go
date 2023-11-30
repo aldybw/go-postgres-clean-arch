@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"go-postgres-clean-arch/domain"
 	"time"
 
@@ -14,6 +15,7 @@ type tagUsecase struct {
 	validate       *validator.Validate
 }
 
+// NewTagUsecase will create a new tagUsecase object representation of domain.TagUsecase interface
 func NewTagUsecase(t domain.TagRepository, timeout time.Duration, v *validator.Validate) domain.TagUseCase {
 	return &tagUsecase{
 		tagRepo:        t,
@@ -28,8 +30,15 @@ func (t *tagUsecase) Fetch(c context.Context, cursor string, num int64) (res []d
 		num = 10
 	}
 
+	// if cursor == "" {
+	// 	cursor ==
+	// }
+
 	ctx, cancel := context.WithTimeout(c, t.contextTimeout)
 	defer cancel()
+
+	fmt.Println(num)
+	fmt.Println(cursor)
 
 	res, nextCursor, err = t.tagRepo.Fetch(ctx, cursor, num)
 	if err != nil {
@@ -70,7 +79,7 @@ func (t *tagUsecase) Store(c context.Context, tag *domain.Tag) (err error) {
 	defer cancel()
 	existedTag, _ := t.FetchByName(ctx, tag.Name)
 	// check conflict tag
-	if existedTag != (domain.Tag{}) {
+	if existedTag == (domain.Tag{}) {
 		return domain.ErrConflict
 	}
 
@@ -91,14 +100,14 @@ func (t *tagUsecase) Update(c context.Context, tag *domain.Tag) (err error) {
 func (t *tagUsecase) Delete(c context.Context, id int64) (err error) {
 	ctx, cancel := context.WithTimeout(c, t.contextTimeout)
 	defer cancel()
-	existedArticle, err := a.articleRepo.GetByID(ctx, id)
+	existedTag, err := t.tagRepo.FetchByID(ctx, id)
 	if err != nil {
 		return
 	}
-	if existedArticle == (domain.Article{}) {
+	if existedTag == (domain.Tag{}) {
 		return domain.ErrNotFound
 	}
-	return a.articleRepo.Delete(ctx, id)
+	return t.tagRepo.Delete(ctx, id)
 }
 
 // OLD IMPLEMENTATION

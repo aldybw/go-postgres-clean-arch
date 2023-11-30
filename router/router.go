@@ -1,26 +1,19 @@
 package router
 
-import (
-	_tagHandler "go-postgres-clean-arch/tag/delivery/http"
-	"net/http"
+// func NewRouter(tagHandler *_tagHandler.TagHandler) *gin.Engine {
+// 	router := gin.Default()
 
-	"github.com/gin-gonic/gin"
-)
+// 	router.GET("", func(ctx *gin.Context) {
+// 		ctx.JSON(http.StatusOK, "welcome home")
+// 	})
 
-func NewRouter(tagHandler *_tagHandler.TagHandler) *gin.Engine {
-	router := gin.Default()
+// 	baseRouter := router.Group("/api")
+// 	tagsRouter := baseRouter.Group("/tags")
+// 	tagsRouter.GET("", tagHandler.FindByAll)
+// 	tagsRouter.GET("/:tagId", tagHandler.FindById)
+// 	tagsRouter.POST("", tagHandler.Create)
+// 	tagsRouter.PATCH("/:tagId", tagHandler.Update)
+// 	tagsRouter.DELETE("/:tagId", tagHandler.Delete)
 
-	router.GET("", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, "welcome home")
-	})
-
-	baseRouter := router.Group("/api")
-	tagsRouter := baseRouter.Group("/tags")
-	tagsRouter.GET("", tagHandler.FindByAll)
-	tagsRouter.GET("/:tagId", tagHandler.FindById)
-	tagsRouter.POST("", tagHandler.Create)
-	tagsRouter.PATCH("/:tagId", tagHandler.Update)
-	tagsRouter.DELETE("/:tagId", tagHandler.Delete)
-
-	return router
-}
+// 	return router
+// }
