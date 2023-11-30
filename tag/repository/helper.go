@@ -13,11 +13,13 @@ const (
 func DecodeCursor(encodedTime string) (time.Time, error) {
 	byt, err := base64.StdEncoding.DecodeString(encodedTime)
 	if err != nil {
+		// fmt.Println("error di base64.StdEncoding.DecodeString: " + err.Error())
 		return time.Time{}, err
 	}
 
 	timeString := string(byt)
 	t, err := time.Parse(timeFormat, timeString)
+	// fmt.Println("error di time.Parse: " + err.Error())
 
 	return t, err
 }

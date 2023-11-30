@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 	"go-postgres-clean-arch/domain"
 	"time"
 
@@ -30,15 +29,8 @@ func (t *tagUsecase) Fetch(c context.Context, cursor string, num int64) (res []d
 		num = 10
 	}
 
-	// if cursor == "" {
-	// 	cursor ==
-	// }
-
 	ctx, cancel := context.WithTimeout(c, t.contextTimeout)
 	defer cancel()
-
-	fmt.Println(num)
-	fmt.Println(cursor)
 
 	res, nextCursor, err = t.tagRepo.Fetch(ctx, cursor, num)
 	if err != nil {
@@ -78,8 +70,9 @@ func (t *tagUsecase) Store(c context.Context, tag *domain.Tag) (err error) {
 	ctx, cancel := context.WithTimeout(c, t.contextTimeout)
 	defer cancel()
 	existedTag, _ := t.FetchByName(ctx, tag.Name)
+
 	// check conflict tag
-	if existedTag == (domain.Tag{}) {
+	if existedTag.Name == tag.Name {
 		return domain.ErrConflict
 	}
 
@@ -88,12 +81,12 @@ func (t *tagUsecase) Store(c context.Context, tag *domain.Tag) (err error) {
 }
 
 // Update implements domain.TagUseCase.
-func (t *tagUsecase) Update(c context.Context, tag *domain.Tag) (err error) {
+func (t *tagUsecase) Update(c context.Context, id int64, tag *domain.Tag) (err error) {
 	ctx, cancel := context.WithTimeout(c, t.contextTimeout)
 	defer cancel()
 
 	tag.UpdatedAt = time.Now()
-	return t.tagRepo.Update(ctx, tag)
+	return t.tagRepo.Update(ctx, id, tag)
 }
 
 // Delete implements domain.TagUseCase.

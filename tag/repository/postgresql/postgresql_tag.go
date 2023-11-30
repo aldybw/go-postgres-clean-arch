@@ -58,25 +58,48 @@ func (p *postgresqlTagRepo) fetch(ctx context.Context, query string, args ...int
 
 // Fetch implements domain.TagRepository.
 func (p *postgresqlTagRepo) Fetch(ctx context.Context, cursor string, num int64) (res []domain.Tag, nextCursor string, err error) {
-	query := `SELECT id,name,created_at,updated_at 
-				FROM tags 
-				WHERE created_at > ? 
-				ORDER BY created_at 
-				LIMIT ?`
+	var query string
+	if cursor != "" {
+		query = `SELECT id,name,created_at,updated_at
+					FROM tag
+					WHERE created_at > $1
+					ORDER BY created_at
+					LIMIT $2`
 
-	decodedCursor, err := repository.DecodeCursor(cursor)
-	if err != nil {
-		fmt.Println(err)
-		return nil, "", domain.ErrBadParamInput
+		decodedCursor, err := repository.DecodeCursor(cursor)
+		if err != nil && cursor != "" {
+			return nil, "", domain.ErrBadParamInput
+		}
+		res, err = p.fetch(ctx, query, decodedCursor, num)
+		if err != nil {
+			return nil, "", err
+		}
+
+		// fmt.Println("len(res): " + strconv.Itoa(len(res)))
+		// fmt.Println("int(num): " + strconv.Itoa(int(num)))
+		if len(res) == int(num) {
+			nextCursor = repository.EncodeCursor(res[len(res)-1].CreatedAt)
+			// decodedCursor, err := repository.DecodeCursor(cursor)
+			// decodedCursor, err = repository.DecodeCursor(nextCursor)
+			if err != nil && cursor != "" {
+				return nil, "", domain.ErrBadParamInput
+			}
+			// fmt.Println("res[len(res)-1].CreatedAt: " + res[len(res)-1].CreatedAt.String())
+			// fmt.Println("cursor: " + cursor)
+			// fmt.Println("EncodeCursor: " + nextCursor)
+			// fmt.Println("decodedCursor: " + decodedCursor.String())
+		}
+
+		return res, nextCursor, nil
 	}
 
-	res, err = p.fetch(ctx, query, decodedCursor, num)
+	query = `SELECT id,name,created_at,updated_at
+			FROM tag
+			ORDER BY created_at
+			LIMIT $1`
+	res, err = p.fetch(ctx, query, num)
 	if err != nil {
 		return nil, "", err
-	}
-
-	if len(res) == int(num) {
-		nextCursor = repository.EncodeCursor(res[len(res)-1].CreatedAt)
 	}
 
 	return
@@ -85,8 +108,8 @@ func (p *postgresqlTagRepo) Fetch(ctx context.Context, cursor string, num int64)
 // FetchByID implements domain.TagRepository.
 func (p *postgresqlTagRepo) FetchByID(ctx context.Context, id int64) (res domain.Tag, err error) {
 	query := `SELECT id,name,created_at,updated_at 
-				FROM tags 
-				WHERE id = ?`
+				FROM tag 
+				WHERE id = $1`
 
 	list, err := p.fetch(ctx, query, id)
 	if err != nil {
@@ -104,11 +127,12 @@ func (p *postgresqlTagRepo) FetchByID(ctx context.Context, id int64) (res domain
 
 // FetchByName implements domain.TagRepository.
 func (p *postgresqlTagRepo) FetchByName(ctx context.Context, name string) (res domain.Tag, err error) {
-	query := `SELECT id,name,created_at,updated_at 
-				FROM tags 
-				WHERE name = ?`
+	query := `SELECT id, name, created_at, updated_at 
+				FROM tag 
+				WHERE name = $1`
 
 	list, err := p.fetch(ctx, query, name)
+
 	if err != nil {
 		return
 	}
@@ -124,7 +148,6 @@ func (p *postgresqlTagRepo) FetchByName(ctx context.Context, name string) (res d
 
 // Store implements domain.TagRepository.
 func (p *postgresqlTagRepo) Store(ctx context.Context, t *domain.Tag) (err error) {
-	// query := `INSERT tags SET name=? , created_at=? , updated_at=?`
 	query := `INSERT INTO tag (name, created_at, updated_at) 
 				VALUES ($1, $2, $3)
 				RETURNING id`
@@ -133,22 +156,19 @@ func (p *postgresqlTagRepo) Store(ctx context.Context, t *domain.Tag) (err error
 		return
 	}
 
-	// _, err = stmt.ExecContext(ctx, t.Name, time.Now().UTC(), time.Now().UTC())
 	err = stmt.QueryRowContext(ctx, t.Name, time.Now(), time.Now()).Err()
 	if err != nil {
 		return
 	}
-	// lastID, err := res.LastInsertId()
 	if err != nil {
 		return
 	}
-	// t.ID = lastID
 	return
 }
 
 // Delete implements domain.TagRepository.
 func (p *postgresqlTagRepo) Delete(ctx context.Context, id int64) (err error) {
-	query := "DELETE FROM tags WHERE id = ?"
+	query := "DELETE FROM tag WHERE id = $1"
 
 	stmt, err := p.Conn.PrepareContext(ctx, query)
 	if err != nil {
@@ -174,15 +194,15 @@ func (p *postgresqlTagRepo) Delete(ctx context.Context, id int64) (err error) {
 }
 
 // Update implements domain.TagRepository.
-func (p *postgresqlTagRepo) Update(ctx context.Context, t *domain.Tag) (err error) {
-	query := `UPDATE tags set name=?, updated_at=? WHERE id = ?`
+func (p *postgresqlTagRepo) Update(ctx context.Context, id int64, t *domain.Tag) (err error) {
+	query := `UPDATE tag SET name=$1, updated_at=$2 WHERE id = $3;`
 
 	stmt, err := p.Conn.PrepareContext(ctx, query)
 	if err != nil {
 		return
 	}
 
-	res, err := stmt.ExecContext(ctx, t.Name, t.UpdatedAt, t.ID)
+	res, err := stmt.ExecContext(ctx, t.Name, t.UpdatedAt, id)
 	if err != nil {
 		return
 	}

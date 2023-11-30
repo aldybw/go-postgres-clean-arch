@@ -36,7 +36,7 @@ type TagUseCase interface {
 	FetchByID(ctx context.Context, id int64) (Tag, error)
 	FetchByName(ctx context.Context, name string) (Tag, error)
 	Store(ctx context.Context, t *Tag) error
-	Update(ctx context.Context, t *Tag) error
+	Update(ctx context.Context, id int64, t *Tag) error
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -46,6 +46,6 @@ type TagRepository interface {
 	FetchByID(ctx context.Context, id int64) (Tag, error)
 	FetchByName(ctx context.Context, name string) (Tag, error)
 	Store(ctx context.Context, t *Tag) error
-	Update(ctx context.Context, t *Tag) error
+	Update(ctx context.Context, id int64, t *Tag) error
 	Delete(ctx context.Context, id int64) error
 }
