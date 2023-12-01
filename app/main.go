@@ -10,6 +10,9 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
 
+	_articleHttpDelivery "go-postgres-clean-arch/article/delivery/http"
+	_articleRepo "go-postgres-clean-arch/article/repository/postgresql"
+	_articleUcase "go-postgres-clean-arch/article/usecase"
 	"go-postgres-clean-arch/config"
 	_tagHttpDelivery "go-postgres-clean-arch/tag/delivery/http"
 	_tagHttpDeliveryMiddleware "go-postgres-clean-arch/tag/delivery/http/middleware"
@@ -67,12 +70,15 @@ func main() {
 	e := echo.New()
 	middL := _tagHttpDeliveryMiddleware.InitMiddleware()
 	e.Use(middL.CORS)
-	authorRepo := _tagRepo.NewPostgresqlTagRepository(dbConn, db)
+	tagRepo := _tagRepo.NewPostgresqlTagRepository(dbConn, db)
+	articleRepo := _articleRepo.NewPostgresqlArticleRepository(dbConn)
 
 	timeoutContext := time.Duration(viper.GetInt("context.timeout")) * time.Second
 	var validate *validator.Validate
-	tu := _tagUcase.NewTagUsecase(authorRepo, timeoutContext, validate)
+	tu := _tagUcase.NewTagUsecase(tagRepo, timeoutContext, validate)
+	au := _articleUcase.NewArticleUsecase(articleRepo, tagRepo, timeoutContext)
 	_tagHttpDelivery.NewTagHandler(e, tu)
+	_articleHttpDelivery.NewArticleHandler(e, au)
 
 	log.Fatal(e.Start(viper.GetString("server.address"))) //nolint
 

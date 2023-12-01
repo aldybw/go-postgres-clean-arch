@@ -83,12 +83,12 @@ func (t *tagUsecase) Store(c context.Context, tag *domain.Tag) (err error) {
 }
 
 // Update implements domain.TagUseCase.
-func (t *tagUsecase) Update(c context.Context, id int64, tag *domain.Tag) (err error) {
+func (t *tagUsecase) Update(c context.Context, tag *domain.Tag) (err error) {
 	ctx, cancel := context.WithTimeout(c, t.contextTimeout)
 	defer cancel()
 
 	tag.UpdatedAt = time.Now()
-	return t.tagRepo.Update(ctx, id, tag)
+	return t.tagRepo.Update(ctx, tag)
 }
 
 // Delete implements domain.TagUseCase.

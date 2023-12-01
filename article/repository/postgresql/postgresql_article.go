@@ -138,7 +138,7 @@ func (m *postgresqlArticleRepository) GetByTitle(ctx context.Context, title stri
 	return
 }
 
-func (m *postgresqlArticleRepository) Store(ctx context.Context, a *domain.Article) (err error) {
+func (m *postgresqlArticleRepository) Store(ctx context.Context, a *domain.ArticleInput) (err error) {
 	query := `INSERT INTO article (title, content, tag_id, updated_at , created_at) 
 				VALUES ($1, $2, $3, $4, $5)
 				RETURNING ID`
@@ -147,7 +147,7 @@ func (m *postgresqlArticleRepository) Store(ctx context.Context, a *domain.Artic
 		return
 	}
 
-	err = stmt.QueryRowContext(ctx, a.Title, a.Content, a.Tag.ID, a.UpdatedAt, a.CreatedAt).Err()
+	err = stmt.QueryRowContext(ctx, a.Title, a.Content, a.TagID, a.UpdatedAt, a.CreatedAt).Err()
 	if err != nil {
 		return
 	}
@@ -179,7 +179,7 @@ func (m *postgresqlArticleRepository) Delete(ctx context.Context, id int64) (err
 
 	return
 }
-func (m *postgresqlArticleRepository) Update(ctx context.Context, id int64, ar *domain.Article) (err error) {
+func (m *postgresqlArticleRepository) Update(ctx context.Context, ar *domain.ArticleInput) (err error) {
 	query := `UPDATE article set title=$1, content=$2, tag_id=$3, updated_at=$4 WHERE ID = $5`
 
 	stmt, err := m.Conn.PrepareContext(ctx, query)
@@ -187,7 +187,7 @@ func (m *postgresqlArticleRepository) Update(ctx context.Context, id int64, ar *
 		return
 	}
 
-	res, err := stmt.ExecContext(ctx, ar.Title, ar.Content, ar.Tag.ID, ar.UpdatedAt, ar.ID)
+	res, err := stmt.ExecContext(ctx, ar.Title, ar.Content, ar.TagID, ar.UpdatedAt, ar.ID)
 	if err != nil {
 		return
 	}

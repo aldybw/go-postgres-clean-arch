@@ -31,7 +31,6 @@ func NewTagHandler(e *echo.Echo, tu domain.TagUseCase) {
 
 	baseRouter := e.Group("/api")
 	tagsRouter := baseRouter.Group("/tags")
-	tagsRouter.GET("/welcome", func(ctx echo.Context) (err error) { return ctx.JSON(http.StatusOK, "welcome aldy") })
 	tagsRouter.GET("", handler.FetchTag)
 	tagsRouter.GET("/:tagId", handler.GetByID)
 	tagsRouter.POST("", handler.Store)
@@ -75,20 +74,6 @@ func (t *TagHandler) GetByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, tag)
 }
 
-// // GetByName will get tag by given name
-// func (t *TagHandler) GetByName(c echo.Context) error {
-// 	name := c.QueryParam("name")
-
-// 	ctx := c.Request().Context()
-
-// 	tags, err := t.TUsecase.FetchByName(ctx, name)
-// 	if err != nil {
-// 		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
-// 	}
-
-// 	return c.JSON(http.StatusOK, tags)
-// }
-
 // Store will store the tag by given request body
 func (t *TagHandler) Store(c echo.Context) (err error) {
 	var tag domain.Tag
@@ -130,6 +115,7 @@ func (t *TagHandler) Update(c echo.Context) (err error) {
 
 	var tag domain.Tag
 	err = c.Bind(&tag)
+	tag.ID = id
 	if err != nil {
 		return c.JSON(http.StatusUnprocessableEntity, err.Error())
 	}
@@ -142,7 +128,7 @@ func (t *TagHandler) Update(c echo.Context) (err error) {
 	var tagResponse TagResponse
 	tagResponse.Name = tag.Name
 
-	err = t.TUsecase.Update(ctx, id, &tag)
+	err = t.TUsecase.Update(ctx, &tag)
 	if err != nil {
 		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
 	}

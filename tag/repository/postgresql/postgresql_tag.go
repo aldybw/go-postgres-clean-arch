@@ -191,7 +191,7 @@ func (p *postgresqlTagRepo) Delete(ctx context.Context, id int64) (err error) {
 }
 
 // Update implements domain.TagRepository.
-func (p *postgresqlTagRepo) Update(ctx context.Context, id int64, t *domain.Tag) (err error) {
+func (p *postgresqlTagRepo) Update(ctx context.Context, t *domain.Tag) (err error) {
 	query := `UPDATE tag SET name=$1, updated_at=$2 WHERE id = $3;`
 
 	stmt, err := p.Conn.PrepareContext(ctx, query)
@@ -199,7 +199,7 @@ func (p *postgresqlTagRepo) Update(ctx context.Context, id int64, t *domain.Tag)
 		return
 	}
 
-	res, err := stmt.ExecContext(ctx, t.Name, t.UpdatedAt, id)
+	res, err := stmt.ExecContext(ctx, t.Name, t.UpdatedAt, t.ID)
 	if err != nil {
 		return
 	}

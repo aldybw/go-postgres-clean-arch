@@ -117,12 +117,12 @@ func (a *articleUsecase) GetByID(c context.Context, id int64) (res domain.Articl
 	return
 }
 
-func (a *articleUsecase) Update(c context.Context, id int64, ar *domain.Article) (err error) {
+func (a *articleUsecase) Update(c context.Context, ar *domain.ArticleInput) (err error) {
 	ctx, cancel := context.WithTimeout(c, a.contextTimeout)
 	defer cancel()
 
 	ar.UpdatedAt = time.Now()
-	return a.articleRepo.Update(ctx, id, ar)
+	return a.articleRepo.Update(ctx, ar)
 }
 
 func (a *articleUsecase) GetByTitle(c context.Context, title string) (res domain.Article, err error) {
@@ -142,14 +142,23 @@ func (a *articleUsecase) GetByTitle(c context.Context, title string) (res domain
 	return
 }
 
-func (a *articleUsecase) Store(c context.Context, m *domain.Article) (err error) {
+func (a *articleUsecase) Store(c context.Context, m *domain.ArticleInput) (err error) {
 	ctx, cancel := context.WithTimeout(c, a.contextTimeout)
 	defer cancel()
 	existedArticle, _ := a.GetByTitle(ctx, m.Title)
-	if existedArticle != (domain.Article{}) {
+
+	// check conflict article
+	if existedArticle.Title == m.Title {
 		return domain.ErrConflict
 	}
 
+	_, err = a.tagRepo.FetchByID(ctx, m.TagID)
+	if err != nil {
+		return err
+	}
+
+	m.CreatedAt = time.Now()
+	m.UpdatedAt = time.Now()
 	err = a.articleRepo.Store(ctx, m)
 	return
 }

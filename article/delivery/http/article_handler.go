@@ -14,6 +14,11 @@ type ResponseError struct {
 	Message string `json:"message"`
 }
 
+type ArticleResponse struct {
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
 // ArticleHandler  represent the httphandler for article
 type ArticleHandler struct {
 	AUsecase domain.ArticleUsecase
@@ -24,10 +29,13 @@ func NewArticleHandler(e *echo.Echo, us domain.ArticleUsecase) {
 	handler := &ArticleHandler{
 		AUsecase: us,
 	}
-	e.GET("/articles", handler.FetchArticle)
-	e.POST("/articles", handler.Store)
-	e.GET("/articles/:id", handler.GetByID)
-	e.DELETE("/articles/:id", handler.Delete)
+
+	baseRouter := e.Group("/api")
+	tagsRouter := baseRouter.Group("/articles")
+	tagsRouter.GET("", handler.FetchArticle)
+	tagsRouter.POST("", handler.Store)
+	tagsRouter.GET("/:articleId", handler.GetByID)
+	tagsRouter.DELETE("/:articleId", handler.Delete)
 }
 
 // FetchArticle will fetch the article based on given params
@@ -48,7 +56,7 @@ func (a *ArticleHandler) FetchArticle(c echo.Context) error {
 
 // GetByID will get article by given id
 func (a *ArticleHandler) GetByID(c echo.Context) error {
-	idP, err := strconv.Atoi(c.Param("id"))
+	idP, err := strconv.Atoi(c.Param("articleId"))
 	if err != nil {
 		return c.JSON(http.StatusNotFound, domain.ErrNotFound.Error())
 	}
@@ -64,18 +72,9 @@ func (a *ArticleHandler) GetByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, art)
 }
 
-func isRequestValid(m *domain.Article) (bool, error) {
-	validate := validator.New()
-	err := validate.Struct(m)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
-}
-
 // Store will store the article by given request body
 func (a *ArticleHandler) Store(c echo.Context) (err error) {
-	var article domain.Article
+	var article domain.ArticleInput
 	err = c.Bind(&article)
 	if err != nil {
 		return c.JSON(http.StatusUnprocessableEntity, err.Error())
@@ -92,12 +91,54 @@ func (a *ArticleHandler) Store(c echo.Context) (err error) {
 		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
 	}
 
-	return c.JSON(http.StatusCreated, article)
+	var articleResponse ArticleResponse
+	articleResponse.Title = article.Title
+	articleResponse.Content = article.Content
+
+	return c.JSON(http.StatusCreated, articleResponse)
+}
+
+// Update will update the article by request body based on param id
+func (a *ArticleHandler) Update(c echo.Context) (err error) {
+	idP, err := strconv.Atoi(c.Param("articleId"))
+	if err != nil {
+		return c.JSON(http.StatusNotFound, domain.ErrNotFound.Error())
+	}
+
+	id := int64(idP)
+	ctx := c.Request().Context()
+	_, err = a.AUsecase.GetByID(ctx, id)
+	if err != nil {
+		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+	}
+
+	var article domain.ArticleInput
+	err = c.Bind(&article)
+	article.ID = id
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, err.Error())
+	}
+
+	var ok bool
+	if ok, err = isRequestValid(&article); !ok {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	var articleResponse ArticleResponse
+	articleResponse.Title = article.Title
+	articleResponse.Content = article.Content
+
+	err = a.AUsecase.Update(ctx, &article)
+	if err != nil {
+		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, articleResponse)
 }
 
 // Delete will delete article by given param
 func (a *ArticleHandler) Delete(c echo.Context) error {
-	idP, err := strconv.Atoi(c.Param("id"))
+	idP, err := strconv.Atoi(c.Param("articleId"))
 	if err != nil {
 		return c.JSON(http.StatusNotFound, domain.ErrNotFound.Error())
 	}
@@ -111,6 +152,15 @@ func (a *ArticleHandler) Delete(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+func isRequestValid(m *domain.ArticleInput) (bool, error) {
+	validate := validator.New()
+	err := validate.Struct(m)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func getStatusCode(err error) int {
