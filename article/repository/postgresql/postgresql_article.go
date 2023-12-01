@@ -101,6 +101,7 @@ func (m *postgresqlArticleRepository) Fetch(ctx context.Context, cursor string, 
 
 	return
 }
+
 func (m *postgresqlArticleRepository) GetByID(ctx context.Context, id int64) (res domain.Article, err error) {
 	query := `SELECT id,title,content, tag_id, updated_at, created_at
 				FROM article 
@@ -179,8 +180,9 @@ func (m *postgresqlArticleRepository) Delete(ctx context.Context, id int64) (err
 
 	return
 }
+
 func (m *postgresqlArticleRepository) Update(ctx context.Context, ar *domain.ArticleInput) (err error) {
-	query := `UPDATE article set title=$1, content=$2, tag_id=$3, updated_at=$4 WHERE ID = $5`
+	query := `UPDATE article SET title=$1, content=$2, tag_id=$3, updated_at=$4 WHERE id = $5;`
 
 	stmt, err := m.Conn.PrepareContext(ctx, query)
 	if err != nil {

@@ -35,6 +35,7 @@ func NewArticleHandler(e *echo.Echo, us domain.ArticleUsecase) {
 	tagsRouter.GET("", handler.FetchArticle)
 	tagsRouter.POST("", handler.Store)
 	tagsRouter.GET("/:articleId", handler.GetByID)
+	tagsRouter.PATCH("/:articleId", handler.Update)
 	tagsRouter.DELETE("/:articleId", handler.Delete)
 }
 

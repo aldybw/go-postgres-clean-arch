@@ -121,6 +121,26 @@ func (a *articleUsecase) Update(c context.Context, ar *domain.ArticleInput) (err
 	ctx, cancel := context.WithTimeout(c, a.contextTimeout)
 	defer cancel()
 
+	selectedArticle, err := a.GetByID(ctx, ar.ID)
+	if err != nil {
+		return err
+	}
+
+	existedArticle, _ := a.GetByTitle(ctx, ar.Title)
+
+	if existedArticle.Title != selectedArticle.Title && existedArticle.Title == ar.Title {
+		return domain.ErrConflict
+	}
+
+	if ar.TagID == 0 {
+		ar.TagID = selectedArticle.Tag.ID
+	}
+
+	_, err = a.tagRepo.FetchByID(ctx, ar.TagID)
+	if err != nil {
+		return err
+	}
+
 	ar.UpdatedAt = time.Now()
 	return a.articleRepo.Update(ctx, ar)
 }
@@ -147,7 +167,6 @@ func (a *articleUsecase) Store(c context.Context, m *domain.ArticleInput) (err e
 	defer cancel()
 	existedArticle, _ := a.GetByTitle(ctx, m.Title)
 
-	// check conflict article
 	if existedArticle.Title == m.Title {
 		return domain.ErrConflict
 	}

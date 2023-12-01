@@ -69,9 +69,9 @@ func (t *tagUsecase) FetchByName(c context.Context, name string) (res domain.Tag
 func (t *tagUsecase) Store(c context.Context, tag *domain.Tag) (err error) {
 	ctx, cancel := context.WithTimeout(c, t.contextTimeout)
 	defer cancel()
+
 	existedTag, _ := t.FetchByName(ctx, tag.Name)
 
-	// check conflict tag
 	if existedTag.Name == tag.Name {
 		return domain.ErrConflict
 	}
@@ -86,6 +86,17 @@ func (t *tagUsecase) Store(c context.Context, tag *domain.Tag) (err error) {
 func (t *tagUsecase) Update(c context.Context, tag *domain.Tag) (err error) {
 	ctx, cancel := context.WithTimeout(c, t.contextTimeout)
 	defer cancel()
+
+	selectedTag, err := t.FetchByID(ctx, tag.ID)
+	if err != nil {
+		return err
+	}
+
+	existedTag, _ := t.FetchByName(ctx, tag.Name)
+
+	if existedTag.Name != selectedTag.Name && existedTag.Name == tag.Name {
+		return domain.ErrConflict
+	}
 
 	tag.UpdatedAt = time.Now()
 	return t.tagRepo.Update(ctx, tag)
