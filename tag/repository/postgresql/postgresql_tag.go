@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"go-postgres-clean-arch/domain"
 	"go-postgres-clean-arch/tag/repository"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -66,7 +65,11 @@ func (p *postgresqlTagRepo) Fetch(ctx context.Context, cursor string, num int64)
 					ORDER BY created_at
 					LIMIT $2`
 
+		// Example decodedCursor or cursor: 2023-11-30 15:20:33.682 +0000 UTC
+		// Example encodeCursor and cursor: MjAyMy0xMS0zMFQxNToyMDozMy42ODJa
+
 		decodedCursor, err := repository.DecodeCursor(cursor)
+		fmt.Println("decodedCursor: " + decodedCursor.String())
 		if err != nil && cursor != "" {
 			return nil, "", domain.ErrBadParamInput
 		}
@@ -75,19 +78,11 @@ func (p *postgresqlTagRepo) Fetch(ctx context.Context, cursor string, num int64)
 			return nil, "", err
 		}
 
-		// fmt.Println("len(res): " + strconv.Itoa(len(res)))
-		// fmt.Println("int(num): " + strconv.Itoa(int(num)))
 		if len(res) == int(num) {
 			nextCursor = repository.EncodeCursor(res[len(res)-1].CreatedAt)
-			// decodedCursor, err := repository.DecodeCursor(cursor)
-			// decodedCursor, err = repository.DecodeCursor(nextCursor)
 			if err != nil && cursor != "" {
 				return nil, "", domain.ErrBadParamInput
 			}
-			// fmt.Println("res[len(res)-1].CreatedAt: " + res[len(res)-1].CreatedAt.String())
-			// fmt.Println("cursor: " + cursor)
-			// fmt.Println("EncodeCursor: " + nextCursor)
-			// fmt.Println("decodedCursor: " + decodedCursor.String())
 		}
 
 		return res, nextCursor, nil
@@ -97,7 +92,9 @@ func (p *postgresqlTagRepo) Fetch(ctx context.Context, cursor string, num int64)
 			FROM tag
 			ORDER BY created_at
 			LIMIT $1`
+
 	res, err = p.fetch(ctx, query, num)
+
 	if err != nil {
 		return nil, "", err
 	}
@@ -156,7 +153,7 @@ func (p *postgresqlTagRepo) Store(ctx context.Context, t *domain.Tag) (err error
 		return
 	}
 
-	err = stmt.QueryRowContext(ctx, t.Name, time.Now(), time.Now()).Err()
+	err = stmt.QueryRowContext(ctx, t.Name, t.CreatedAt, t.UpdatedAt).Err()
 	if err != nil {
 		return
 	}

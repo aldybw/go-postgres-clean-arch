@@ -11,6 +11,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type ResponseError struct {
+	Message string `json:"message"`
+}
+
+type TagResponse struct {
+	Name string `json:"name"`
+}
+
 type TagHandler struct {
 	TUsecase domain.TagUseCase
 }
@@ -39,7 +47,6 @@ func (t *TagHandler) FetchTag(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	listTag, nextCursor, err := t.TUsecase.Fetch(ctx, cursor, int64(num))
-	// listTag, nextCursor, err := t.TUsecase.Fetch(ctx, cursor, int64(num))
 	if err != nil {
 		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
 	}
@@ -159,14 +166,6 @@ func (t *TagHandler) Delete(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
-}
-
-type ResponseError struct {
-	Message string `json:"message"`
-}
-
-type TagResponse struct {
-	Name string `json:"name"`
 }
 
 func isRequestValid(m *domain.Tag) (bool, error) {

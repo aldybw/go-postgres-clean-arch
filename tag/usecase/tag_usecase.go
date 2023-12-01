@@ -76,6 +76,8 @@ func (t *tagUsecase) Store(c context.Context, tag *domain.Tag) (err error) {
 		return domain.ErrConflict
 	}
 
+	tag.CreatedAt = time.Now()
+	tag.UpdatedAt = time.Now()
 	err = t.tagRepo.Store(ctx, tag)
 	return
 }
