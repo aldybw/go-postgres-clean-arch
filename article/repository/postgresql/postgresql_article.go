@@ -139,7 +139,7 @@ func (m *postgresqlArticleRepository) GetByTitle(ctx context.Context, title stri
 	return
 }
 
-func (m *postgresqlArticleRepository) Store(ctx context.Context, a *domain.ArticleInput) (err error) {
+func (m *postgresqlArticleRepository) Store(ctx context.Context, a *domain.CreateArticleInput) (err error) {
 	query := `INSERT INTO article (title, content, tag_id, updated_at , created_at) 
 				VALUES ($1, $2, $3, $4, $5)
 				RETURNING ID`
@@ -181,7 +181,7 @@ func (m *postgresqlArticleRepository) Delete(ctx context.Context, id int64) (err
 	return
 }
 
-func (m *postgresqlArticleRepository) Update(ctx context.Context, ar *domain.ArticleInput) (err error) {
+func (m *postgresqlArticleRepository) Update(ctx context.Context, ar *domain.UpdateArticleInput) (err error) {
 	query := `UPDATE article SET title=$1, content=$2, tag_id=$3, updated_at=$4 WHERE id = $5;`
 
 	stmt, err := m.Conn.PrepareContext(ctx, query)

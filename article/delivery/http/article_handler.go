@@ -75,14 +75,14 @@ func (a *ArticleHandler) GetByID(c echo.Context) error {
 
 // Store will store the article by given request body
 func (a *ArticleHandler) Store(c echo.Context) (err error) {
-	var article domain.ArticleInput
+	var article domain.CreateArticleInput
 	err = c.Bind(&article)
 	if err != nil {
 		return c.JSON(http.StatusUnprocessableEntity, err.Error())
 	}
 
 	var ok bool
-	if ok, err = isRequestValid(&article); !ok {
+	if ok, err = isCreateRequestValid(&article); !ok {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
@@ -113,7 +113,7 @@ func (a *ArticleHandler) Update(c echo.Context) (err error) {
 		return c.JSON(getStatusCode(err), ResponseError{Message: err.Error()})
 	}
 
-	var article domain.ArticleInput
+	var article domain.UpdateArticleInput
 	err = c.Bind(&article)
 	article.ID = id
 	if err != nil {
@@ -121,7 +121,7 @@ func (a *ArticleHandler) Update(c echo.Context) (err error) {
 	}
 
 	var ok bool
-	if ok, err = isRequestValid(&article); !ok {
+	if ok, err = isUpdateRequestValid(&article); !ok {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
@@ -155,7 +155,15 @@ func (a *ArticleHandler) Delete(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-func isRequestValid(m *domain.ArticleInput) (bool, error) {
+func isCreateRequestValid(m *domain.CreateArticleInput) (bool, error) {
+	validate := validator.New()
+	err := validate.Struct(m)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+func isUpdateRequestValid(m *domain.UpdateArticleInput) (bool, error) {
 	validate := validator.New()
 	err := validate.Struct(m)
 	if err != nil {

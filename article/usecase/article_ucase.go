@@ -117,7 +117,7 @@ func (a *articleUsecase) GetByID(c context.Context, id int64) (res domain.Articl
 	return
 }
 
-func (a *articleUsecase) Update(c context.Context, ar *domain.ArticleInput) (err error) {
+func (a *articleUsecase) Update(c context.Context, ar *domain.UpdateArticleInput) (err error) {
 	ctx, cancel := context.WithTimeout(c, a.contextTimeout)
 	defer cancel()
 
@@ -132,6 +132,12 @@ func (a *articleUsecase) Update(c context.Context, ar *domain.ArticleInput) (err
 		return domain.ErrConflict
 	}
 
+	if ar.Title == "" {
+		ar.Title = selectedArticle.Title
+	}
+	if ar.Content == "" {
+		ar.Content = selectedArticle.Content
+	}
 	if ar.TagID == 0 {
 		ar.TagID = selectedArticle.Tag.ID
 	}
@@ -162,7 +168,7 @@ func (a *articleUsecase) GetByTitle(c context.Context, title string) (res domain
 	return
 }
 
-func (a *articleUsecase) Store(c context.Context, m *domain.ArticleInput) (err error) {
+func (a *articleUsecase) Store(c context.Context, m *domain.CreateArticleInput) (err error) {
 	ctx, cancel := context.WithTimeout(c, a.contextTimeout)
 	defer cancel()
 	existedArticle, _ := a.GetByTitle(ctx, m.Title)
